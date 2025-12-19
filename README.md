@@ -26,7 +26,7 @@ This project was built as part of a **Backend Engineer – Product Importer assi
 - Case-insensitive SKU uniqueness
 - Optimized for large datasets
 
-#### ✅ CSV Format Validation
+### ✅ CSV Format Validation
 - Expected CSV headers: sku, name, description
 - Header validation is performed **before** starting the import job
 - Validation rules:
