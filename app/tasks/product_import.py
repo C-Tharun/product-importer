@@ -57,29 +57,50 @@ def _upsert_batch(session: Session, payload: List[Dict[str, object]]):
     session.commit()
 
 
-@celery_app.task(name="app.tasks.product_import.import_products_from_csv", bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@celery_app.task(
+    name="app.tasks.product_import.import_products_from_csv",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
 def import_products_from_csv(self, file_path: str) -> str:
     """
     Stream CSV rows and upsert products by normalized SKU.
     - Batches writes to reduce commit overhead.
     - Keeps parsing logic minimal and transparent.
+    - Uses context manager to ensure session cleanup even on errors.
     """
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"CSV file not found: {file_path}")
 
+    # Create a new session for this task
+    # Each Celery worker process needs its own DB connection
     session: Session = SessionLocal()
     try:
         with path.open("r", encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
             for batch in _chunked((_prepare_product_payload(row) for row in reader), settings.batch_size):
-                # Skip rows missing required identifiers; keeps import robust without failing the whole batch.
-                filtered = [p for p in batch if p["sku"] and p["name"]]
-                if not filtered:
+                # Deduplicate by SKU within the batch.
+                # If the same SKU appears multiple times, the last one wins.
+                deduped: dict[str, dict[str, object]] = {}
+
+                for product in batch:
+                    if not product["sku"] or not product["name"]:
+                        continue
+                    deduped[product["sku"]] = product
+
+                if not deduped:
                     continue
-                _upsert_batch(session, filtered)
+
+                _upsert_batch(session, list(deduped.values()))
+    except Exception as e:
+        # Rollback on error to avoid leaving partial data
+        session.rollback()
+        raise
     finally:
+        # Always close the session to release the connection back to the pool
         session.close()
 
     return file_path
-
