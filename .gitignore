@@ -2,6 +2,10 @@
 __pycache__/
 *.pyc
 
+# Python virtual environments
+venv/
+.venv/
+
 # Environment files
 .env
 
@@ -12,3 +16,6 @@ uploads/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+# OS / editor
+.DS_Store
