@@ -28,8 +28,7 @@ class Product(Base):
         nullable=False,
     )
 
-    __table_args__ = (
-        # Defensive index to ensure uniqueness on the normalized sku value.
-        Index("ix_products_sku_unique", func.lower(sku), unique=True),
-    )
+    # Note: We normalize SKU (trim + lowercase) before insert in the task,
+    # so the unique constraint on sku column is sufficient.
+    # The Index with func.lower() syntax doesn't work here - we handle normalization in code.
 

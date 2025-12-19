@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -11,9 +11,11 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     batch_size: int = 500
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    # Pydantic v2 configuration
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+    )
 
 
 @lru_cache()
