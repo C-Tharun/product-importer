@@ -12,7 +12,6 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
           name: product-importer-redis
           property: connectionString
 
@@ -29,14 +28,13 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
           name: product-importer-redis
           property: connectionString
 
-databases:
-  - name: product-importer-db
+  - type: redis
+    name: product-importer-redis
     plan: free
 
-redis:
-  - name: product-importer-redis
+databases:
+  - name: product-importer-db
     plan: free
