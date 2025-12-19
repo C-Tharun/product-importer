@@ -73,10 +73,38 @@ alembic revision --autogenerate -m "description of changes"
 alembic upgrade head
 ```
 
-## Upload flow
-1. POST `/upload-csv` with a CSV file (streamed to disk).
+## Frontend Setup (Part 2)
+
+The frontend is a React + Vite + Tailwind application for real-time progress tracking.
+
+### Install Frontend Dependencies
+```bash
+cd frontend
+npm install
+```
+
+### Run Frontend Development Server
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:3000` and will proxy API requests to the backend.
+
+### Build Frontend for Production
+```bash
+npm run build
+```
+
+## Upload flow (Part 1)
+1. POST `/api/upload-csv` with a CSV file (streamed to disk).
 2. Response returns `job_id` from Celery.
 3. Worker streams CSV, normalizes SKU (trim + lower), and upserts in batches.
+
+## Real-time Progress Tracking (Part 2)
+1. Upload CSV via the web UI (drag-and-drop or file picker).
+2. Frontend connects to SSE endpoint `/api/jobs/{job_id}/events` for real-time updates.
+3. Progress bar updates live as rows are processed.
+4. Job status updates: pending → processing → completed/failed.
 
 ## Troubleshooting
 
