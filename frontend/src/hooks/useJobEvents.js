@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiFetch, getApiUrl } from '../lib/api'
 
 /**
  * Custom hook to listen to Server-Sent Events for job progress updates.
@@ -15,7 +16,7 @@ export function useJobEvents(jobId) {
     if (!jobId) return
 
     // Create EventSource connection to SSE endpoint
-    const eventSource = new EventSource(`/api/jobs/${jobId}/events`)
+    const eventSource = new EventSource(getApiUrl(`/api/jobs/${jobId}/events`))
 
     eventSource.onmessage = (event) => {
       try {
@@ -41,7 +42,7 @@ export function useJobEvents(jobId) {
     eventSource.onerror = (err) => {
       console.error('SSE connection error:', err)
       // Try to fetch current status as fallback
-      fetch(`/api/jobs/${jobId}`)
+      apiFetch(`/api/jobs/${jobId}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.status) setStatus(data.status)

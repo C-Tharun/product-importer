@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiFetch } from '../lib/api'
 
 function JobList() {
   const [jobs, setJobs] = useState([])
@@ -6,7 +7,7 @@ function JobList() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('/api/jobs?limit=10')
+      const response = await apiFetch('/api/jobs?limit=10')
       const data = await response.json()
       setJobs(data.jobs || [])
     } catch (err) {

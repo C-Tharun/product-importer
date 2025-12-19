@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { apiFetch } from '../lib/api'
 
 function FileUpload({ onUploadSuccess, disabled }) {
   const [isDragging, setIsDragging] = useState(false)
@@ -22,15 +23,10 @@ function FileUpload({ onUploadSuccess, disabled }) {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch('/api/upload-csv', {
+      const response = await apiFetch('/api/upload-csv', {
         method: 'POST',
         body: formData,
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Upload failed')
-      }
 
       const data = await response.json()
       onUploadSuccess(data.job_id)

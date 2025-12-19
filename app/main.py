@@ -53,9 +53,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:5173",
 
-        # Deployed frontend (update once frontend is live)
-        # Example:
-        # "https://product-importer-frontend.onrender.com",
+        # Deployed frontend
+        "https://product-importer-frontend-374q.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
