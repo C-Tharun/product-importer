@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router as api_router
 from app.api.jobs import router as jobs_router
+from app.api.products import router as products_router
+from app.api.webhooks import router as webhooks_router
 from app.core.config import settings
 
 # -------------------------------------------------
@@ -94,6 +96,8 @@ def run_migrations() -> None:
 # -------------------------------------------------
 app.include_router(api_router, prefix="/api")
 app.include_router(jobs_router, prefix="/api")
+app.include_router(products_router, prefix="/api")
+app.include_router(webhooks_router, prefix="/api")
 
 
 # -------------------------------------------------

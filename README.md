@@ -106,6 +106,75 @@ npm run build
 3. Progress bar updates live as rows are processed.
 4. Job status updates: pending → processing → completed/failed.
 
+## Product Management (STORY 2)
+
+The application includes a full Product Management UI with CRUD operations:
+
+### Features
+- **List Products**: Paginated table view with filtering by SKU, name, description, and active status
+- **Create Products**: Add new products with SKU, name, description, and active status
+- **Update Products**: Edit product name, description, and active status (SKU cannot be changed)
+- **Delete Products**: Delete individual products with confirmation dialog
+- **Bulk Delete**: Delete all products at once (requires explicit confirmation)
+
+### API Endpoints
+
+- `GET /api/products` - List products with pagination and filtering
+  - Query parameters: `page`, `page_size`, `sku`, `name`, `description`, `active`
+- `POST /api/products` - Create a new product
+- `GET /api/products/{id}` - Get a single product
+- `PUT /api/products/{id}` - Update a product
+- `DELETE /api/products/{id}` - Delete a product
+- `DELETE /api/products?confirm=true` - Delete all products (bulk delete)
+
+### Usage
+Navigate to the "Products" page in the web UI to manage your product catalog.
+
+## Bulk Delete (STORY 3)
+
+The bulk delete feature allows you to delete all products at once:
+
+- Requires explicit confirmation (`confirm=true` parameter)
+- Returns the count of deleted products
+- Includes strong confirmation dialog in the UI
+- Shows success/failure toast notifications
+
+## Webhook Configuration (STORY 4)
+
+Configure webhooks to receive event notifications when products are created, updated, deleted, or when imports complete.
+
+### Features
+- **CRUD Operations**: Create, read, update, and delete webhook configurations
+- **Enable/Disable**: Toggle webhooks on/off without deleting them
+- **Test Webhooks**: Test webhook endpoints with sample payloads
+- **Event Types**: Support for `product_created`, `product_updated`, `product_deleted`, `import_completed`
+
+### API Endpoints
+
+- `GET /api/webhooks` - List all webhooks
+- `POST /api/webhooks` - Create a new webhook
+- `GET /api/webhooks/{id}` - Get a single webhook
+- `PUT /api/webhooks/{id}` - Update a webhook
+- `DELETE /api/webhooks/{id}` - Delete a webhook
+- `POST /api/webhooks/{id}/test` - Test a webhook (returns status code and response time)
+
+### Webhook Payload Format
+
+When events occur, webhooks receive JSON payloads like:
+
+```json
+{
+  "event_type": "product_created",
+  "product_id": "uuid-here",
+  "sku": "PRODUCT-SKU",
+  "name": "Product Name",
+  "timestamp": 1234567890.123
+}
+```
+
+### Usage
+Navigate to the "Webhooks" page in the web UI to configure webhooks. Webhooks are executed asynchronously and do not block the main request flow.
+
 ## Troubleshooting
 
 ### Database connection errors

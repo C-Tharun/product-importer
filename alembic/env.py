@@ -17,7 +17,7 @@ sys.path.insert(0, str(BASE_DIR))  # Use insert to prioritize your project path
 from app.core.config import settings
 from app.db.base import Base
 # Import all models so Alembic can discover them
-from app.models import Product, ImportJob  # noqa: F401
+from app.models import Product, ImportJob, Webhook  # noqa: F401
 
 # -------------------------------------------------
 # Alembic Config object
