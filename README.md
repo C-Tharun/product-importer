@@ -26,6 +26,19 @@ This project was built as part of a **Backend Engineer – Product Importer assi
 - Case-insensitive SKU uniqueness
 - Optimized for large datasets
 
+#### ✅ CSV Format Validation
+- Expected CSV headers: sku, name, description
+- Header validation is performed **before** starting the import job
+- Validation rules:
+- Headers are **case-insensitive**
+- Column order does **not** matter
+- Extra columns are allowed
+- Missing required headers → import is rejected
+- Invalid CSV files are rejected immediately with a clear UI error message
+- No background job is created for invalid CSV formats
+
+
+
 ### ✅ Real-Time Progress Tracking
 - Live progress updates via Server-Sent Events (SSE)
 - Status states: `pending → processing → completed / failed`
