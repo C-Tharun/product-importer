@@ -8,14 +8,20 @@ from app.api.routes import router as api_router
 from app.api.jobs import router as jobs_router
 from app.core.config import settings
 
+# -------------------------------------------------
+# Logging
+# -------------------------------------------------
 logging.basicConfig(level=logging.INFO)
 
+# -------------------------------------------------
+# App initialization
+# -------------------------------------------------
 app = FastAPI(title=settings.app_name)
 
 
-# ----------------------------
-# Startup: run DB migrations
-# ----------------------------
+# -------------------------------------------------
+# Startup: run DB migrations (Render free-tier safe)
+# -------------------------------------------------
 @app.on_event("startup")
 def run_migrations() -> None:
     """
@@ -37,16 +43,19 @@ def run_migrations() -> None:
         raise
 
 
-# ----------------------------
+# -------------------------------------------------
 # CORS configuration
-# ----------------------------
+# -------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Local development
         "http://localhost:3000",
         "http://localhost:5173",
-        # add deployed frontend URL here later (Vercel/Render)
-        # e.g. "https://product-importer-frontend.onrender.com"
+
+        # Deployed frontend (update once frontend is live)
+        # Example:
+        # "https://product-importer-frontend.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -54,18 +63,21 @@ app.add_middleware(
 )
 
 
-# ----------------------------
+# -------------------------------------------------
 # API routes
-# ----------------------------
+# -------------------------------------------------
 app.include_router(api_router, prefix="/api")
 app.include_router(jobs_router, prefix="/api")
 
 
-# ----------------------------
-# Health & root endpoints
-# ----------------------------
+# -------------------------------------------------
+# Meta & health endpoints
+# -------------------------------------------------
 @app.get("/", tags=["meta"])
 def root() -> dict:
+    """
+    Root endpoint for basic service visibility.
+    """
     return {
         "service": settings.app_name,
         "status": "running",
@@ -76,4 +88,7 @@ def root() -> dict:
 
 @app.get("/health", tags=["health"])
 def health() -> dict:
+    """
+    Lightweight health check for monitoring.
+    """
     return {"status": "ok"}
