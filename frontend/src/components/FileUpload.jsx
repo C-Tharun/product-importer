@@ -101,7 +101,7 @@ function FileUpload({ onUploadSuccess, disabled }) {
             <li>Headers are required</li>
             <li>Order does not matter</li>
             <li>Case-insensitive (e.g., "SKU" or "sku" both work)</li>
-            <li>Extra columns are allowed</li>
+            <li>Extra CSV columns are allowed and ignored</li>
           </ul>
         </div>
       </div>
