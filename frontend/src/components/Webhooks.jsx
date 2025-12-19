@@ -151,8 +151,18 @@ function Webhooks() {
         showToast(`Webhook test failed: ${data.error_message || 'Unknown error'}`, 'error')
       }
     } catch (err) {
-      setTestResult({ success: false, error_message: err.message })
-      showToast(err.message || 'Failed to test webhook', 'error')
+      // Check if error is about disabled webhook
+      const errorMessage = err.message || 'Failed to test webhook'
+      const isDisabledError = errorMessage.includes('disabled') || errorMessage.includes('Enable it before testing')
+      
+      setTestResult({ success: false, error_message: errorMessage })
+      
+      if (isDisabledError) {
+        // Show warning toast for disabled webhook
+        showToast('Webhook is disabled. Enable it before testing.', 'error')
+      } else {
+        showToast(errorMessage, 'error')
+      }
     } finally {
       setTestingId(null)
     }

@@ -102,10 +102,18 @@ async def test_webhook(
     """
     Test a webhook by sending a sample payload.
     Returns response status code and response time.
+    Disabled webhooks cannot be tested.
     """
     webhook = db.query(Webhook).filter(Webhook.id == webhook_id).first()
     if not webhook:
         raise HTTPException(status_code=404, detail="Webhook not found")
+
+    # Check if webhook is enabled before making any HTTP request
+    if not webhook.enabled:
+        raise HTTPException(
+            status_code=400,
+            detail="Webhook is disabled. Enable it before testing.",
+        )
 
     # Sample payload for testing
     sample_payload = {
