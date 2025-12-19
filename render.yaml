@@ -3,6 +3,7 @@ services:
     name: product-importer-api
     env: python
     plan: free
+    pythonVersion: 3.11
     buildCommand: pip install -r requirements.txt
     startCommand: |
       sh -c "
