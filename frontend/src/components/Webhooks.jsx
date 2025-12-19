@@ -145,10 +145,32 @@ function Webhooks() {
       })
       const data = await response.json()
       setTestResult(data)
-      if (data.success) {
-        showToast(`Webhook test successful (${data.status_code})`)
+      
+      // Show toast with status code and response time if available
+      if (data.status_code !== undefined && data.status_code !== null) {
+        const statusCode = data.status_code
+        const responseTime = data.response_time_ms !== undefined && data.response_time_ms !== null
+          ? Math.round(data.response_time_ms)
+          : null
+        
+        if (statusCode >= 200 && statusCode < 300) {
+          // Success: 2xx status codes
+          const message = responseTime !== null
+            ? `Webhook responded with ${statusCode} in ${responseTime} ms`
+            : `Webhook responded with ${statusCode}`
+          showToast(message)
+        } else {
+          // Non-2xx status codes
+          const message = responseTime !== null
+            ? `Webhook responded with ${statusCode} in ${responseTime} ms`
+            : `Webhook responded with ${statusCode}`
+          showToast(message, 'error')
+        }
+      } else if (data.error_message) {
+        // Error case without status code
+        showToast(`Webhook test failed: ${data.error_message}`, 'error')
       } else {
-        showToast(`Webhook test failed: ${data.error_message || 'Unknown error'}`, 'error')
+        showToast('Webhook test failed: Unknown error', 'error')
       }
     } catch (err) {
       // Check if error is about disabled webhook
@@ -220,13 +242,33 @@ function Webhooks() {
                         Created: {new Date(webhook.created_at).toLocaleString()}
                       </p>
                       {testResult && testingId === webhook.id && (
-                        <div className={`mt-2 text-xs ${
-                          testResult.success ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          Test: {testResult.success ? '✓' : '✗'} 
-                          {testResult.status_code && ` Status: ${testResult.status_code}`}
-                          {testResult.response_time_ms && ` (${testResult.response_time_ms}ms)`}
-                          {testResult.error_message && ` - ${testResult.error_message}`}
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          {testResult.status_code !== undefined && testResult.status_code !== null ? (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-600">Status:</span>
+                                <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                                  testResult.status_code >= 200 && testResult.status_code < 300
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {testResult.status_code}
+                                </span>
+                              </div>
+                              {testResult.response_time_ms !== undefined && testResult.response_time_ms !== null && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium text-gray-600">Response Time:</span>
+                                  <span className="px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                                    {Math.round(testResult.response_time_ms)} ms
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-red-600">
+                              {testResult.error_message || 'Test failed'}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
