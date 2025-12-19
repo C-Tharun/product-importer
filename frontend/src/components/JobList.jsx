@@ -66,7 +66,7 @@ function JobList() {
           {jobs.map((job) => (
             <div
               key={job.job_id}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow animate-fade-in"
+              className="border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:border-blue-200 transition-all duration-300 animate-fade-in bg-white"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-3">

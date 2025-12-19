@@ -31,20 +31,20 @@ This project was built as part of a **Backend Engineer – Product Importer assi
 - Status states: `pending → processing → completed / failed`
 - UI progress bar with percentage and row counts
 
-### ✅ Product Management (STORY 2)
+### ✅ Product Management
 - Paginated product listing
 - Filtering by SKU, name, description, active status
 - Create / Update / Delete products
 - Inline modal forms with validation
 - Case-insensitive SKU enforcement
 
-### ✅ Bulk Delete (STORY 3)
+### ✅ Bulk Delete
 - Delete all products in a single operation
 - Explicit confirmation required
 - Safe, user-protected destructive action
 - UI feedback and status notifications
 
-### ✅ Webhook Configuration (STORY 4)
+### ✅ Webhook Configuration
 - Configure multiple webhooks via UI
 - Enable / disable webhooks
 - Test webhooks with latency + status feedback
@@ -162,7 +162,7 @@ http://localhost:3000
 - GET /api/jobs/{job_id}
 - GET /api/jobs/{job_id}/events (SSE)
 
-### Products (STORY 2 & 3)
+### Products
 - GET /api/products
 - POST /api/products
 - GET /api/products/{id}
@@ -170,7 +170,7 @@ http://localhost:3000
 - DELETE /api/products/{id}
 - DELETE /api/products?confirm=true
 
-### Webhooks (STORY 4)
+### Webhooks
 - GET /api/webhooks
 - POST /api/webhooks
 - PUT /api/webhooks/{id}

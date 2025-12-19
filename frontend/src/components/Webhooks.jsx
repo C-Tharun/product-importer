@@ -178,14 +178,14 @@ function Webhooks() {
           </div>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 font-medium"
           >
             + Add Webhook
           </button>
         </header>
 
         {/* Webhooks List */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-soft overflow-hidden border border-gray-100">
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -198,7 +198,7 @@ function Webhooks() {
           ) : (
             <div className="divide-y divide-gray-200">
               {webhooks.map((webhook) => (
-                <div key={webhook.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={webhook.id} className="p-6 hover:bg-blue-50/30 transition-all duration-200 border-b border-gray-100 last:border-b-0">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -270,8 +270,8 @@ function Webhooks() {
 
         {/* Create/Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" onClick={() => setShowModal(false)}>
+            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl animate-scale-in border border-gray-200" onClick={(e) => e.stopPropagation()}>
               <h2 className="text-2xl font-bold mb-4">{editingWebhook ? 'Edit Webhook' : 'Create Webhook'}</h2>
               
               {formError && (
@@ -343,8 +343,8 @@ function Webhooks() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl animate-scale-in border border-gray-200">
               <h2 className="text-xl font-bold mb-4">Delete Webhook</h2>
               <p className="mb-6 text-gray-700">Are you sure you want to delete this webhook? This action cannot be undone.</p>
               <div className="flex gap-2 justify-end">
@@ -369,10 +369,21 @@ function Webhooks() {
 
         {/* Toast Notification */}
         {toast && (
-          <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in ${
-            toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+          <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-2xl z-50 animate-slide-up backdrop-blur-sm ${
+            toast.type === 'error' ? 'bg-red-500/95 text-white' : 'bg-green-500/95 text-white'
           }`}>
-            {toast.message}
+            <div className="flex items-center gap-2">
+              {toast.type === 'error' ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
+              <span className="font-medium">{toast.message}</span>
+            </div>
           </div>
         )}
       </div>

@@ -86,14 +86,14 @@ function FileUpload({ onUploadSuccess, disabled }) {
         onDrop={handleDrop}
         onClick={handleClick}
         className={`
-          border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
-          transition-all duration-200
+          border-2 border-dashed rounded-xl p-12 text-center cursor-pointer
+          transition-all duration-300 ease-out
           ${
             isDragging
-              ? 'border-blue-500 bg-blue-50'
+              ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20 scale-[1.02]'
               : disabled
               ? 'border-gray-300 bg-gray-50 cursor-not-allowed opacity-60'
-              : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+              : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50 hover:shadow-md hover:scale-[1.01]'
           }
         `}
       >

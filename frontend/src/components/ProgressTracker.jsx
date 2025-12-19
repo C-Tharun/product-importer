@@ -51,8 +51,8 @@ function ProgressTracker({ jobId, onComplete }) {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold text-gray-800">Import Progress</h2>
+    <div className="space-y-4 animate-fade-in">
+      <h2 className="text-2xl font-semibold text-gray-800 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Import Progress</h2>
 
       <div className="space-y-2">
         <div className="flex justify-between items-center">

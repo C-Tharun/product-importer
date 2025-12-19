@@ -4,6 +4,7 @@ import ProgressTracker from './components/ProgressTracker'
 import JobList from './components/JobList'
 import Products from './components/Products'
 import Webhooks from './components/Webhooks'
+import Footer from './components/Footer'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('import') // 'import', 'products', 'webhooks'
@@ -58,40 +59,42 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white shadow-md">
+      <nav className="bg-white/80 backdrop-blur-sm shadow-md sticky top-0 z-50 border-b border-gray-200/50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold text-gray-900">Product Importer</h1>
-              <div className="flex space-x-4">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                Product Importer
+              </h1>
+              <div className="flex space-x-2">
                 <button
                   onClick={() => setCurrentPage('import')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     currentPage === 'import'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
                   Import
                 </button>
                 <button
                   onClick={() => setCurrentPage('products')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     currentPage === 'products'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
                   Products
                 </button>
                 <button
                   onClick={() => setCurrentPage('webhooks')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     currentPage === 'webhooks'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
                   Webhooks
@@ -103,19 +106,24 @@ function App() {
       </nav>
 
       {/* Page Content */}
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl flex-1">
         {currentPage === 'import' && (
           <header className="mb-8 text-center animate-fade-in">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
               CSV Import
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-lg">
               Upload CSV files to import products in real-time
             </p>
           </header>
         )}
-        {renderPage()}
+        <div className="animate-fade-in">
+          {renderPage()}
+        </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }
