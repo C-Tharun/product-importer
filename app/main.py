@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,51 @@ logging.basicConfig(level=logging.INFO)
 # App initialization
 # -------------------------------------------------
 app = FastAPI(title=settings.app_name)
+
+
+# -------------------------------------------------
+# CORS configuration
+# Must be added BEFORE routers to handle preflight requests
+# -------------------------------------------------
+def get_allowed_origins() -> list[str]:
+    """
+    Get allowed CORS origins from environment variable or settings.
+    Falls back to sensible defaults if not configured.
+    """
+    # Check environment variable first (for Render deployment)
+    env_origins = os.getenv("ALLOWED_ORIGINS")
+    if env_origins:
+        # Split comma-separated string and strip whitespace
+        origins = [origin.strip() for origin in env_origins.split(",") if origin.strip()]
+        if origins:
+            logging.info(f"Using CORS origins from ALLOWED_ORIGINS env var: {origins}")
+            return origins
+    
+    # Fall back to settings.allowed_origins
+    if settings.allowed_origins:
+        origins = [origin.strip() for origin in settings.allowed_origins.split(",") if origin.strip()]
+        logging.info(f"Using CORS origins from settings: {origins}")
+        return origins
+    
+    # Final fallback to defaults
+    default_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://product-importer-frontend-374q.onrender.com",
+    ]
+    logging.info(f"Using default CORS origins: {default_origins}")
+    return default_origins
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_allowed_origins(),
+    allow_credentials=True,  # Required for cookies/auth and SSE
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods including OPTIONS for preflight
+    allow_headers=["*"],  # Allow all headers including Authorization, Content-Type, etc.
+    expose_headers=["*"],  # Expose headers for SSE and other use cases
+    max_age=3600,  # Cache preflight requests for 1 hour
+)
 
 
 # -------------------------------------------------
@@ -41,25 +87,6 @@ def run_migrations() -> None:
         logging.error(f"Database migration failed: {exc}")
         # Fail fast if DB schema is not ready
         raise
-
-
-# -------------------------------------------------
-# CORS configuration
-# -------------------------------------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        # Local development
-        "http://localhost:3000",
-        "http://localhost:5173",
-
-        # Deployed frontend
-        "https://product-importer-frontend-374q.onrender.com",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # -------------------------------------------------

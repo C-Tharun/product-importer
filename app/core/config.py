@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     celery_result_backend: str | None = None
     upload_dir: str = "uploads"
     batch_size: int = 500
+    allowed_origins: str = "http://localhost:3000,http://localhost:5173,https://product-importer-frontend-374q.onrender.com"
 
     # Pydantic v2 configuration
     model_config = SettingsConfigDict(
