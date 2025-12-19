@@ -12,6 +12,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
+          type: redis
           name: product-importer-redis
           property: connectionString
 
@@ -28,12 +29,16 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
+          type: redis
           name: product-importer-redis
           property: connectionString
 
   - type: redis
     name: product-importer-redis
     plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow internal services
 
 databases:
   - name: product-importer-db
