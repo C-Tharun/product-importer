@@ -31,7 +31,10 @@ function FileUpload({ onUploadSuccess, disabled }) {
       const data = await response.json()
       onUploadSuccess(data.job_id)
     } catch (err) {
+      // Handle backend validation errors (HTTP 400)
+      // apiFetch already extracts and formats error messages from backend
       setError(err.message || 'Failed to upload file')
+      // Do NOT call onUploadSuccess - validation failed, no job started
     } finally {
       setIsUploading(false)
     }
@@ -79,6 +82,29 @@ function FileUpload({ onUploadSuccess, disabled }) {
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">
         Upload CSV File
       </h2>
+
+      {/* Expected CSV Format Section */}
+      <div className="mb-6 p-4 bg-blue-50/50 border border-blue-200 rounded-lg">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Expected CSV Format</h3>
+        <div className="text-sm text-gray-600 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium">Required headers:</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-white rounded border border-gray-300 font-mono text-xs">sku</span>
+              <span className="text-gray-400">|</span>
+              <span className="px-2 py-1 bg-white rounded border border-gray-300 font-mono text-xs">name</span>
+              <span className="text-gray-400">|</span>
+              <span className="px-2 py-1 bg-white rounded border border-gray-300 font-mono text-xs">description</span>
+            </div>
+          </div>
+          <ul className="list-disc list-inside text-xs text-gray-500 space-y-0.5 ml-2">
+            <li>Headers are required</li>
+            <li>Order does not matter</li>
+            <li>Case-insensitive (e.g., "SKU" or "sku" both work)</li>
+            <li>Extra columns are allowed</li>
+          </ul>
+        </div>
+      </div>
 
       <div
         onDragOver={handleDragOver}

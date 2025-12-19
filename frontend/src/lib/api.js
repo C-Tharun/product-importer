@@ -24,7 +24,28 @@ export async function apiFetch(path, options = {}) {
     let errorMessage = `Request failed with status ${response.status}`
     try {
       const errorData = await response.json()
-      errorMessage = errorData.detail || errorData.message || errorMessage
+      // Handle FastAPI error format: {detail: string | object}
+      if (errorData.detail) {
+        if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail
+        } else if (typeof errorData.detail === 'object') {
+          // Structured error (e.g., {error: "...", message: "...", required_headers: [...]})
+          // Prefer 'message' field if available (user-friendly), otherwise use 'error'
+          if (errorData.detail.message) {
+            errorMessage = errorData.detail.message
+          } else if (errorData.detail.error) {
+            errorMessage = errorData.detail.error
+            // Add required headers info if available
+            if (errorData.detail.required_headers) {
+              errorMessage += `. Required headers: ${errorData.detail.required_headers.join(', ')}.`
+            }
+          } else {
+            errorMessage = JSON.stringify(errorData.detail)
+          }
+        }
+      } else if (errorData.message) {
+        errorMessage = errorData.message
+      }
     } catch {
       // If response is not JSON, use status text
       errorMessage = response.statusText || errorMessage

@@ -1,3 +1,4 @@
+import csv
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -10,6 +11,39 @@ from app.models.import_job import ImportJob, ImportJobStatus
 from app.tasks.product_import import import_products_from_csv
 
 router = APIRouter()
+
+# Required CSV headers (case-insensitive)
+REQUIRED_CSV_HEADERS = {"sku", "name", "description"}
+
+
+def validate_csv_headers(file_path: Path) -> tuple[bool, list[str]]:
+    """
+    Validate CSV headers against required headers.
+    Returns (is_valid, missing_headers).
+    Headers are checked case-insensitively.
+    Extra columns are allowed.
+    """
+    try:
+        with file_path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            
+            # Check if file has headers
+            if reader.fieldnames is None or len(reader.fieldnames) == 0:
+                return False, list(REQUIRED_CSV_HEADERS)
+            
+            # Get headers from the first row (case-insensitive, strip whitespace)
+            csv_headers = {header.strip().lower() for header in reader.fieldnames if header}
+            
+            # Check for required headers (case-insensitive)
+            missing_headers = [
+                header for header in REQUIRED_CSV_HEADERS
+                if header.lower() not in csv_headers
+            ]
+            
+            return len(missing_headers) == 0, missing_headers
+    except Exception:
+        # If we can't read the file (encoding issues, empty file, etc.), consider it invalid
+        return False, list(REQUIRED_CSV_HEADERS)
 
 
 @router.post("/upload-csv")
@@ -39,7 +73,32 @@ async def upload_csv(
     finally:
         await file.close()
 
-    # Enqueue Celery task first to get task ID
+    # Validate CSV headers BEFORE enqueuing the task
+    # This prevents invalid files from starting background jobs
+    is_valid, missing_headers = validate_csv_headers(file_path)
+    if not is_valid:
+        # Clean up the uploaded file since it's invalid
+        try:
+            file_path.unlink()
+        except Exception:
+            pass  # Ignore cleanup errors
+        
+        # Build user-friendly error message
+        required_str = ", ".join(sorted(REQUIRED_CSV_HEADERS))
+        missing_str = ", ".join(missing_headers)
+        error_message = f"Invalid CSV format. Required headers: {required_str}. Missing: {missing_str}."
+        
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Invalid CSV format",
+                "message": error_message,
+                "required_headers": sorted(list(REQUIRED_CSV_HEADERS)),
+                "missing_headers": missing_headers,
+            }
+        )
+
+    # Only enqueue Celery task if headers are valid
     task = import_products_from_csv.delay(str(file_path))
     job_id = task.id
 
