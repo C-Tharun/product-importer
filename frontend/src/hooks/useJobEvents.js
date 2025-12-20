@@ -11,6 +11,7 @@ export function useJobEvents(jobId) {
   const [totalRows, setTotalRows] = useState(null)
   const [processedRows, setProcessedRows] = useState(null)
   const [errorMessage, setErrorMessage] = useState(null)
+  const [etaSeconds, setEtaSeconds] = useState(null)
   
   // Use ref to track current status for stuck check (avoids closure issues)
   const statusRef = useRef(null)
@@ -39,6 +40,7 @@ export function useJobEvents(jobId) {
           if (data.total_rows !== undefined) setTotalRows(data.total_rows)
           if (data.processed_rows !== undefined) setProcessedRows(data.processed_rows)
           if (data.error_message !== undefined) setErrorMessage(data.error_message)
+          if (data.eta_seconds !== undefined) setEtaSeconds(data.eta_seconds)
           
           lastUpdateTime = Date.now()
           
@@ -74,6 +76,7 @@ export function useJobEvents(jobId) {
         if (data.total_rows !== undefined) setTotalRows(data.total_rows)
         if (data.processed_rows !== undefined) setProcessedRows(data.processed_rows)
         if (data.error_message !== undefined) setErrorMessage(data.error_message)
+        if (data.eta_seconds !== undefined) setEtaSeconds(data.eta_seconds)
         
         lastUpdateTime = Date.now()
 
@@ -104,6 +107,7 @@ export function useJobEvents(jobId) {
           if (data.total_rows !== undefined) setTotalRows(data.total_rows)
           if (data.processed_rows !== undefined) setProcessedRows(data.processed_rows)
           if (data.error_message !== undefined) setErrorMessage(data.error_message)
+          if (data.eta_seconds !== undefined) setEtaSeconds(data.eta_seconds)
           lastUpdateTime = Date.now()
         })
         .catch(console.error)
@@ -125,6 +129,7 @@ export function useJobEvents(jobId) {
     totalRows,
     processedRows,
     errorMessage,
+    etaSeconds,
   }
 }
 

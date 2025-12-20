@@ -41,13 +41,14 @@ function App() {
 
             {/* Progress Tracker */}
             {currentJobId && (
-              <div className="bg-white rounded-lg shadow-lg p-6 animate-slide-up">
-                <ProgressTracker
-                  jobId={currentJobId}
-                  onComplete={handleJobComplete}
-                />
-              </div>
-            )}
+            <div className="bg-white rounded-lg shadow-lg p-6 animate-slide-up">
+              <ProgressTracker
+                jobId={currentJobId}
+                onComplete={handleJobComplete}
+                onCancel={handleJobComplete}
+              />
+            </div>
+          )}
 
             {/* Recent Jobs List */}
             <div className="bg-white rounded-lg shadow-lg p-6 animate-slide-up">

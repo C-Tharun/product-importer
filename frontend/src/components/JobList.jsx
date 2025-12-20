@@ -4,6 +4,8 @@ import { apiFetch } from '../lib/api'
 function JobList() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState(null)
+  const [cancellingId, setCancellingId] = useState(null)
 
   const fetchJobs = async () => {
     try {
@@ -44,6 +46,46 @@ function JobList() {
     return new Date(dateString).toLocaleString()
   }
 
+  const handleDelete = async (jobId) => {
+    if (!confirm('Are you sure you want to delete this import job? This action cannot be undone.')) {
+      return
+    }
+
+    setDeletingId(jobId)
+    try {
+      await apiFetch(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+      })
+      // Refresh the job list
+      fetchJobs()
+    } catch (err) {
+      console.error('Failed to delete job:', err)
+      alert(err.message || 'Failed to delete job')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleCancel = async (jobId) => {
+    if (!confirm('Are you sure you want to cancel this import job?')) {
+      return
+    }
+
+    setCancellingId(jobId)
+    try {
+      await apiFetch(`/api/jobs/${jobId}/cancel`, {
+        method: 'PUT',
+      })
+      // Refresh the job list
+      fetchJobs()
+    } catch (err) {
+      console.error('Failed to cancel job:', err)
+      alert(err.message || 'Failed to cancel job')
+    } finally {
+      setCancellingId(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-center py-4">
@@ -81,9 +123,31 @@ function JobList() {
                     {job.file_name || 'Unknown file'}
                   </span>
                 </div>
-                <span className="text-xs text-gray-500">
-                  {formatDate(job.created_at)}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {formatDate(job.created_at)}
+                  </span>
+                  <div className="flex gap-1">
+                    {(job.status === 'processing' || job.status === 'pending') && (
+                      <button
+                        onClick={() => handleCancel(job.job_id)}
+                        disabled={cancellingId === job.job_id}
+                        className="px-2 py-1 text-xs text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded transition-colors disabled:opacity-50"
+                        title="Cancel job"
+                      >
+                        {cancellingId === job.job_id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(job.job_id)}
+                      disabled={deletingId === job.job_id}
+                      className="px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                      title="Delete job"
+                    >
+                      {deletingId === job.job_id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {job.status === 'processing' && (

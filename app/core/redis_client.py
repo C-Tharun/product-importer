@@ -35,3 +35,17 @@ def delete_cached_job_progress(job_id: str) -> None:
     """Delete cached job progress (cleanup after completion)."""
     redis_client.delete(f"job:{job_id}")
 
+
+def set_job_cancelled(job_id: str) -> None:
+    """Set a cancellation flag for a job."""
+    redis_client.setex(f"job:{job_id}:cancelled", 3600, "1")  # 1 hour TTL
+
+
+def is_job_cancelled(job_id: str) -> bool:
+    """Check if a job has been cancelled."""
+    return redis_client.get(f"job:{job_id}:cancelled") == "1"
+
+
+def clear_job_cancelled(job_id: str) -> None:
+    """Clear the cancellation flag for a job."""
+    redis_client.delete(f"job:{job_id}:cancelled")
