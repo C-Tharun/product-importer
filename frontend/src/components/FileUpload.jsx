@@ -1,11 +1,36 @@
 import { useState, useRef } from 'react'
-import { apiFetch } from '../lib/api'
+import { apiFetch, getApiUrl } from '../lib/api'
 
 function FileUpload({ onUploadSuccess, disabled }) {
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadETA, setUploadETA] = useState(null)
+  const [isLargeFile, setIsLargeFile] = useState(false)
+  const [fileSize, setFileSize] = useState(0)
   const fileInputRef = useRef(null)
+  const uploadStartTimeRef = useRef(null)
+  const uploadSpeedRef = useRef(null)
+
+  const formatTime = (seconds) => {
+    if (seconds < 60) return `${Math.round(seconds)}s`
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = Math.round(seconds % 60)
+    if (minutes < 60) {
+      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`
+    }
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
+  }
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
 
   const handleFileSelect = async (file) => {
     if (!file) return
@@ -16,16 +41,97 @@ function FileUpload({ onUploadSuccess, disabled }) {
       return
     }
 
+    // Check if file is large (10MB threshold)
+    const fileSizeBytes = file.size
+    const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024 // 10MB
+    const isLarge = fileSizeBytes > LARGE_FILE_THRESHOLD
+    setIsLargeFile(isLarge)
+    setFileSize(fileSizeBytes)
+
     setIsUploading(true)
     setError(null)
+    setUploadProgress(0)
+    setUploadETA(null)
+    uploadStartTimeRef.current = Date.now()
+    uploadSpeedRef.current = null
 
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await apiFetch('/api/upload-csv', {
-        method: 'POST',
-        body: formData,
+      // Use XMLHttpRequest for upload progress tracking
+      const xhr = new XMLHttpRequest()
+      const url = getApiUrl('/api/upload-csv')
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = (e.loaded / e.total) * 100
+          setUploadProgress(progress)
+
+          // Calculate upload speed and ETA
+          const elapsed = (Date.now() - uploadStartTimeRef.current) / 1000 // seconds
+          if (elapsed > 0.5) { // Wait at least 0.5s for accurate speed calculation
+            const speed = e.loaded / elapsed // bytes per second
+            uploadSpeedRef.current = speed
+
+            const remaining = e.total - e.loaded
+            const eta = remaining / speed // seconds
+            setUploadETA(eta > 0 ? eta : null)
+          }
+        }
+      })
+
+      // Handle response
+      const response = await new Promise((resolve, reject) => {
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText)
+              resolve({ ok: true, json: () => Promise.resolve(data) })
+            } catch (err) {
+              reject(new Error('Failed to parse response'))
+            }
+          } else {
+            // Handle error response
+            let errorMessage = `Request failed with status ${xhr.status}`
+            try {
+              const errorData = JSON.parse(xhr.responseText)
+              if (errorData.detail) {
+                if (typeof errorData.detail === 'string') {
+                  errorMessage = errorData.detail
+                } else if (typeof errorData.detail === 'object') {
+                  if (errorData.detail.message) {
+                    errorMessage = errorData.detail.message
+                  } else if (errorData.detail.error) {
+                    errorMessage = errorData.detail.error
+                    if (errorData.detail.required_headers) {
+                      errorMessage += `. Required headers: ${errorData.detail.required_headers.join(', ')}.`
+                    }
+                  } else {
+                    errorMessage = JSON.stringify(errorData.detail)
+                  }
+                }
+              } else if (errorData.message) {
+                errorMessage = errorData.message
+              }
+            } catch {
+              errorMessage = xhr.statusText || errorMessage
+            }
+            reject(new Error(errorMessage))
+          }
+        })
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'))
+        })
+
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload was cancelled'))
+        })
+
+        xhr.open('POST', url)
+        xhr.send(formData)
       })
 
       const data = await response.json()
@@ -33,11 +139,13 @@ function FileUpload({ onUploadSuccess, disabled }) {
       onUploadSuccess(data.job_id || data.celery_task_id)
     } catch (err) {
       // Handle backend validation errors (HTTP 400)
-      // apiFetch already extracts and formats error messages from backend
       setError(err.message || 'Failed to upload file')
       // Do NOT call onUploadSuccess - validation failed, no job started
     } finally {
       setIsUploading(false)
+      setUploadProgress(0)
+      setUploadETA(null)
+      setFileSize(0)
     }
   }
 
@@ -100,9 +208,9 @@ function FileUpload({ onUploadSuccess, disabled }) {
           </div>
           <ul className="list-disc list-inside text-xs text-gray-500 space-y-0.5 ml-2">
             <li>Headers are required</li>
-            <li>Order does not matter</li>
+            <li>Coloumn Order does not matter</li>
             <li>Case-insensitive (e.g., "SKU" or "sku" both work)</li>
-            <li>Extra CSV columns are allowed and ignored</li>
+            <li>Additional CSV columns are allowed and ignored</li>
           </ul>
         </div>
       </div>
@@ -134,9 +242,38 @@ function FileUpload({ onUploadSuccess, disabled }) {
         />
 
         {isUploading ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600">Uploading...</p>
+            {isLargeFile && (
+              <div className="space-y-1">
+                <p className="text-gray-700 font-medium">
+                  Larger files take a while to upload, please wait...
+                </p>
+                <p className="text-sm text-gray-500">
+                  Uploading {formatFileSize(fileSize)}
+                </p>
+              </div>
+            )}
+            {!isLargeFile && (
+              <p className="text-gray-600">Uploading...</p>
+            )}
+            {/* Upload Progress Bar */}
+            <div className="w-full max-w-xs mx-auto">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-1 text-xs text-gray-500">
+                <span>{Math.round(uploadProgress)}%</span>
+                {uploadETA !== null && uploadETA > 0 && (
+                  <span className="text-blue-600 font-medium">
+                    ETA: {formatTime(uploadETA)}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         ) : disabled ? (
           <div className="space-y-2">

@@ -39,12 +39,12 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)) -> dict:
     # Try Redis cache first (fast path) using celery_task_id
     if celery_task_id:
         cached = get_cached_job_progress(celery_task_id)
-        if cached:
-            return {
+    if cached:
+        return {
                 "job_id": str(import_job.id) if import_job else job_id,
                 "celery_task_id": celery_task_id,
-                **cached,
-            }
+            **cached,
+        }
 
     # Fall back to database if not found in cache
     if not import_job:
@@ -52,7 +52,7 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)) -> dict:
             import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
         else:
             # Last resort: try job_id as celery_task_id
-            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
 
     if not import_job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -60,7 +60,7 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)) -> dict:
     # Get ETA from cache if available
     cached = get_cached_job_progress(import_job.celery_task_id)
     eta_seconds = cached.get("eta_seconds") if cached else None
-    
+
     return {
         "job_id": str(import_job.id),
         "celery_task_id": import_job.celery_task_id,
@@ -159,11 +159,11 @@ async def stream_job_events(job_id: str):
                     # Fall back to database
                     if not celery_task_id:
                         # Need to look up the job to get celery_task_id
-                        try:
-                            job_uuid = uuid.UUID(job_id)
-                            import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
+                    try:
+                        job_uuid = uuid.UUID(job_id)
+                        import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
                         except (ValueError, AttributeError):
-                            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+                        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
                     else:
                         # We have celery_task_id, look up by that
                         import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
