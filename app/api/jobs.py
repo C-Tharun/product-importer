@@ -159,11 +159,11 @@ async def stream_job_events(job_id: str):
                     # Fall back to database
                     if not celery_task_id:
                         # Need to look up the job to get celery_task_id
-                    try:
-                        job_uuid = uuid.UUID(job_id)
-                        import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
+                        try:
+                            job_uuid = uuid.UUID(job_id)
+                            import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
                         except (ValueError, AttributeError):
-                        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+                            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
                     else:
                         # We have celery_task_id, look up by that
                         import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
