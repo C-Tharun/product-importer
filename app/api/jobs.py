@@ -52,7 +52,7 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)) -> dict:
             import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
         else:
             # Last resort: try job_id as celery_task_id
-        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
 
     if not import_job:
         raise HTTPException(status_code=404, detail="Job not found")
