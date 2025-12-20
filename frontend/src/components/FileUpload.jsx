@@ -6,7 +6,7 @@ function FileUpload({ onUploadSuccess, disabled }) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadETA, setUploadETA] = useState(null)
+  const [uploadEstimatedTimeRemaining, setUploadEstimatedTimeRemaining] = useState(null)
   const [isLargeFile, setIsLargeFile] = useState(false)
   const [fileSize, setFileSize] = useState(0)
   const fileInputRef = useRef(null)
@@ -51,7 +51,7 @@ function FileUpload({ onUploadSuccess, disabled }) {
     setIsUploading(true)
     setError(null)
     setUploadProgress(0)
-    setUploadETA(null)
+    setUploadEstimatedTimeRemaining(null)
     uploadStartTimeRef.current = Date.now()
     uploadSpeedRef.current = null
 
@@ -69,15 +69,15 @@ function FileUpload({ onUploadSuccess, disabled }) {
           const progress = (e.loaded / e.total) * 100
           setUploadProgress(progress)
 
-          // Calculate upload speed and ETA
+          // Calculate upload speed and estimated time remaining
           const elapsed = (Date.now() - uploadStartTimeRef.current) / 1000 // seconds
           if (elapsed > 0.5) { // Wait at least 0.5s for accurate speed calculation
             const speed = e.loaded / elapsed // bytes per second
             uploadSpeedRef.current = speed
 
             const remaining = e.total - e.loaded
-            const eta = remaining / speed // seconds
-            setUploadETA(eta > 0 ? eta : null)
+            const estimatedTimeRemaining = remaining / speed // seconds
+            setUploadEstimatedTimeRemaining(estimatedTimeRemaining > 0 ? estimatedTimeRemaining : null)
           }
         }
       })
@@ -144,7 +144,7 @@ function FileUpload({ onUploadSuccess, disabled }) {
     } finally {
       setIsUploading(false)
       setUploadProgress(0)
-      setUploadETA(null)
+      setUploadEstimatedTimeRemaining(null)
       setFileSize(0)
     }
   }
@@ -267,9 +267,9 @@ function FileUpload({ onUploadSuccess, disabled }) {
               </div>
               <div className="flex justify-between items-center mt-1 text-xs text-gray-500">
                 <span>{Math.round(uploadProgress)}%</span>
-                {uploadETA !== null && uploadETA > 0 && (
+                {uploadEstimatedTimeRemaining !== null && uploadEstimatedTimeRemaining > 0 && (
                   <span className="text-blue-600 font-medium">
-                    ETA: {formatTime(uploadETA)}
+                    Estimated time remaining: {formatTime(uploadEstimatedTimeRemaining)}
                   </span>
                 )}
               </div>

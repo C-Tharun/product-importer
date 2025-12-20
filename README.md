@@ -20,11 +20,15 @@ This project was built as part of a **Backend Engineer – Product Importer assi
 ## Key Features
 
 ### ✅ Asynchronous CSV Import
-- Upload large CSV files via UI
-- Background processing using Celery
-- Batch upserts with PostgreSQL `ON CONFLICT`
-- Case-insensitive SKU uniqueness
-- Optimized for large datasets
+- Upload large CSV files via UI (drag & drop or click to select)
+- **Upload progress tracking** with real-time progress bar and percentage
+- **Upload estimated time remaining** calculation for large files (>10MB threshold)
+- **Large file detection** with user-friendly messaging: "Larger files take a while to upload, please wait..."
+- File size display during upload
+- Background processing using Celery (non-blocking)
+- Batch upserts with PostgreSQL `ON CONFLICT` for efficient updates
+- Case-insensitive SKU uniqueness enforcement
+- Optimized for large datasets (500,000+ records)
 
 ### ✅ CSV Format Validation
 - Expected CSV headers: sku, name, description
@@ -43,6 +47,9 @@ This project was built as part of a **Backend Engineer – Product Importer assi
 - Live progress updates via Server-Sent Events (SSE)
 - Status states: `pending → processing → completed / failed`
 - UI progress bar with percentage and row counts
+- **Estimated time remaining** calculation for import processing
+- Detailed status messages (parsing, validating, processing rows)
+- Row count tracking (processed / total rows)
 
 ### ✅ Product Management
 - Paginated product listing
@@ -56,6 +63,25 @@ This project was built as part of a **Backend Engineer – Product Importer assi
 - Explicit confirmation required
 - Safe, user-protected destructive action
 - UI feedback and status notifications
+
+### ✅ Job Cancellation with Full Rollback
+- Cancel pending or processing import jobs at any stage
+- **Complete rollback**: All imported data from the cancelled file is automatically reverted
+- Ensures atomicity: file is either fully imported or not imported at all
+- Confirmation dialog to prevent accidental cancellation
+- Graceful cancellation via Redis flags
+- Immediate stop of processing on next batch check
+- All products processed in the cancelled import are deleted to maintain data integrity
+- Job marked as failed with cancellation message
+- Available in both progress tracker and job list views
+
+### ✅ Import Job History
+- View recent import jobs (last 10)
+- Job status indicators (pending, processing, completed, failed)
+- File name, creation date, and progress information
+- Cancel jobs directly from the history list
+- Delete completed/failed jobs from history
+- Auto-refresh every 5 seconds
 
 ### ✅ Webhook Configuration
 - Configure multiple webhooks via UI
@@ -171,9 +197,12 @@ http://localhost:3000
 ## API Overview
 
 ### CSV Import
-- POST /api/upload-csv
-- GET /api/jobs/{job_id}
-- GET /api/jobs/{job_id}/events (SSE)
+- POST /api/upload-csv - Upload CSV file with progress tracking
+- GET /api/jobs - List recent import jobs
+- GET /api/jobs/{job_id} - Get job status
+- GET /api/jobs/{job_id}/events (SSE) - Real-time progress updates
+- PUT /api/jobs/{job_id}/cancel - Cancel a running job
+- DELETE /api/jobs/{job_id} - Delete a job from history
 
 ### Products
 - GET /api/products

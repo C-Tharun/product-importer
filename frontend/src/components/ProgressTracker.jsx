@@ -4,7 +4,7 @@ import { apiFetch } from '../lib/api'
 import ProgressBar from './ProgressBar'
 
 function ProgressTracker({ jobId, onComplete, onCancel }) {
-  const { status, progress, totalRows, processedRows, errorMessage, etaSeconds } =
+  const { status, progress, totalRows, processedRows, errorMessage, estimatedTimeRemainingSeconds } =
     useJobEvents(jobId)
   const [statusText, setStatusText] = useState('')
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -110,7 +110,7 @@ function ProgressTracker({ jobId, onComplete, onCancel }) {
         {/* Progress Bar */}
         <ProgressBar progress={progress} status={status} />
 
-        {/* Row Count and ETA */}
+        {/* Row Count and Estimated Time Remaining */}
         {totalRows && (
           <div className="flex justify-between items-center text-xs text-gray-500">
             <span>{processedRows || 0} / {totalRows} rows processed</span>
@@ -120,9 +120,9 @@ function ProgressTracker({ jobId, onComplete, onCancel }) {
                   {Math.round(((totalRows - (processedRows || 0)) / totalRows) * 100)}% remaining
                 </span>
               )}
-              {status === 'processing' && etaSeconds !== null && etaSeconds !== undefined && (
+              {status === 'processing' && estimatedTimeRemainingSeconds !== null && estimatedTimeRemainingSeconds !== undefined && (
                 <span className="text-blue-600 font-medium">
-                  ETA: {formatTime(etaSeconds)}
+                  Estimated time remaining: {formatTime(estimatedTimeRemainingSeconds)}
                 </span>
               )}
             </div>

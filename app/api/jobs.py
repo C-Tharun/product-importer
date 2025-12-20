@@ -57,7 +57,7 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)) -> dict:
     if not import_job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # Get ETA from cache if available
+    # Get estimated time remaining from cache if available
     cached = get_cached_job_progress(import_job.celery_task_id)
     eta_seconds = cached.get("eta_seconds") if cached else None
 
@@ -182,7 +182,7 @@ async def stream_job_events(job_id: str):
                     total_rows = import_job.total_rows
                     processed_rows = import_job.processed_rows or 0
                     error_message = import_job.error_message
-                    eta_seconds = None  # ETA is calculated in cache, not stored in DB
+                    eta_seconds = None  # Estimated time remaining is calculated in cache, not stored in DB
 
                 # Send update if status, progress, or processed_rows changed
                 # This ensures we get updates even when progress percentage stays the same

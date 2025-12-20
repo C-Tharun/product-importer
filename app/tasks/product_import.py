@@ -50,7 +50,11 @@ def _chunked(iterable: Iterable[Dict[str, object]], size: int) -> Iterable[List[
         yield batch
 
 
-def _upsert_batch(session: Session, payload: List[Dict[str, object]]):
+def _upsert_batch(session: Session, payload: List[Dict[str, object]], commit: bool = False):
+    """
+    Upsert products by SKU. If commit=False, changes are staged but not committed.
+    This allows rollback of the entire import on cancellation.
+    """
     if not payload:
         return
     # Using PostgreSQL ON CONFLICT to upsert by SKU. id remains stable; sku is normalized already.
@@ -67,7 +71,8 @@ def _upsert_batch(session: Session, payload: List[Dict[str, object]]):
     )
     stmt = stmt.values(payload)
     session.execute(stmt)
-    session.commit()
+    if commit:
+        session.commit()
 
 
 def _count_csv_rows(file_path: Path) -> int:
@@ -96,7 +101,7 @@ def _update_job_progress(
     """
     Update import_job record in DB and Redis cache.
     This is called periodically during processing to track progress.
-    Calculates ETA based on processing rate.
+    Calculates estimated time remaining based on processing rate.
     """
     import_job = session.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
     if import_job:
@@ -110,7 +115,7 @@ def _update_job_progress(
             import_job.error_message = error_message
         session.commit()
 
-    # Calculate ETA if we have enough data
+    # Calculate estimated time remaining if we have enough data
     estimated_seconds_remaining = None
     if (start_time and processed_rows and processed_rows > 0 and total_rows and 
         status == "processing"):
@@ -122,7 +127,7 @@ def _update_job_progress(
                 estimated_seconds_remaining = int(remaining_rows / rows_per_second)
 
     # Update Redis cache for fast SSE lookups
-    # Use the existing cache_job_progress function but extend it with ETA
+    # Use the existing cache_job_progress function but extend it with estimated time remaining
     import json
     import redis
     from app.core.config import settings
@@ -160,8 +165,13 @@ def import_products_from_csv(self, file_path: str) -> str:
         raise FileNotFoundError(f"CSV file not found: {file_path}")
 
     celery_task_id = self.request.id
-    session: Session = SessionLocal()
-    start_time = time.time()  # Track start time for ETA calculation
+    # Use separate sessions: one for product imports (transactional), one for progress updates
+    import_session: Session = SessionLocal()
+    progress_session: Session = SessionLocal()
+    start_time = time.time()  # Track start time for estimated time remaining calculation
+    
+    # Track all SKUs processed in this import for rollback on cancellation
+    processed_skus: set[str] = set()
     
     # Initialize variables for error handling
     total_rows = 0
@@ -173,9 +183,9 @@ def import_products_from_csv(self, file_path: str) -> str:
         # This is a fast operation that reads the file once
         total_rows = _count_csv_rows(path)
         
-        # Update job status to processing
+        # Update job status to processing (use separate session so it commits independently)
         _update_job_progress(
-            session=session,
+            session=progress_session,
             celery_task_id=celery_task_id,
             status=ImportJobStatus.PROCESSING.value,
             progress=0,
@@ -203,20 +213,23 @@ def import_products_from_csv(self, file_path: str) -> str:
                     if not product["sku"] or not product["name"]:
                         continue
                     deduped[product["sku"]] = product
+                    # Track this SKU for potential rollback
+                    processed_skus.add(product["sku"])
 
                 if not deduped:
                     continue
 
-                _upsert_batch(session, list(deduped.values()))
+                # Upsert batch without committing (transactional)
+                _upsert_batch(import_session, list(deduped.values()), commit=False)
                 processed_count += len(deduped)
 
-                # Update progress every batch
+                # Update progress every batch (use separate session)
                 # Calculate progress percentage (0-100)
                 progress = int((processed_count / total_rows * 100)) if total_rows > 0 else 0
                 progress = min(progress, 100)  # Cap at 100%
 
                 _update_job_progress(
-                    session=session,
+                    session=progress_session,
                     celery_task_id=celery_task_id,
                     status=ImportJobStatus.PROCESSING.value,
                     progress=progress,
@@ -225,9 +238,12 @@ def import_products_from_csv(self, file_path: str) -> str:
                     start_time=start_time,
                 )
 
+        # Commit all product changes at once (atomic transaction)
+        import_session.commit()
+        
         # Mark as completed
         _update_job_progress(
-            session=session,
+            session=progress_session,
             celery_task_id=celery_task_id,
             status=ImportJobStatus.COMPLETED.value,
             progress=100,
@@ -236,18 +252,31 @@ def import_products_from_csv(self, file_path: str) -> str:
         )
 
     except Exception as e:
-        # Rollback on error to avoid leaving partial data
-        session.rollback()
+        # Rollback product import transaction on error
+        import_session.rollback()
         
         # Check if this was a cancellation
         error_msg = str(e)
         is_cancelled = "cancelled" in error_msg.lower() or is_job_cancelled(celery_task_id)
         
+        # If cancelled, delete all products that were processed in this import
+        # This ensures complete rollback - file is either fully imported or not imported at all
+        if is_cancelled and processed_skus:
+            try:
+                # Delete all products with SKUs that were processed in this import
+                # This rolls back the entire import, even if some batches were processed
+                import_session.query(Product).filter(Product.sku.in_(processed_skus)).delete(synchronize_session=False)
+                import_session.commit()
+            except Exception as rollback_error:
+                # Log error but continue - the rollback attempt was made
+                print(f"Error during rollback deletion: {rollback_error}")
+                import_session.rollback()
+        
         # Mark job as failed with error message
         # If cancelled, use a clear cancellation message
-        final_error_msg = "Job cancelled by user" if is_cancelled else error_msg
+        final_error_msg = "Job cancelled by user - all imported data has been rolled back" if is_cancelled else error_msg
         _update_job_progress(
-            session=session,
+            session=progress_session,
             celery_task_id=celery_task_id,
             status=ImportJobStatus.FAILED.value,
             progress=progress,
@@ -261,7 +290,8 @@ def import_products_from_csv(self, file_path: str) -> str:
         if not is_cancelled:
             raise
     finally:
-        # Always close the session to release the connection back to the pool
-        session.close()
+        # Always close both sessions to release connections back to the pool
+        import_session.close()
+        progress_session.close()
 
     return file_path
