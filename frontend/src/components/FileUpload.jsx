@@ -208,7 +208,7 @@ function FileUpload({ onUploadSuccess, disabled }) {
           </div>
           <ul className="list-disc list-inside text-xs text-gray-500 space-y-0.5 ml-2">
             <li>Headers are required</li>
-            <li>Coloumn order does not matter</li>
+            <li>Column order does not matter</li>
             <li>Case-insensitive (e.g., "SKU" or "sku" both work)</li>
             <li>Additional CSV columns are allowed and ignored</li>
           </ul>
