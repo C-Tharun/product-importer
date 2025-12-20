@@ -19,11 +19,21 @@ def _normalize_sku(raw: str | None) -> str:
 
 
 def _prepare_product_payload(row: Dict[str, str]) -> Dict[str, object]:
-    sku = _normalize_sku(row.get("sku") or row.get("SKU"))
+    """
+    Extract product data from CSV row.
+    Handles case-insensitive headers and strips whitespace from headers.
+    """
+    # Normalize header keys (case-insensitive, strip whitespace)
+    normalized_row = {k.strip().lower(): v for k, v in row.items() if k}
+    
+    sku = _normalize_sku(normalized_row.get("sku", ""))
+    name = (normalized_row.get("name", "") or "").strip()
+    description = (normalized_row.get("description", "") or "").strip()
+    
     return {
         "sku": sku,
-        "name": (row.get("name") or row.get("NAME") or "").strip(),
-        "description": (row.get("description") or row.get("DESCRIPTION") or "").strip(),
+        "name": name,
+        "description": description,
         "active": True,
     }
 

@@ -103,6 +103,7 @@ async def stream_job_events(job_id: str):
         """Generate SSE events with job progress updates."""
         last_status = None
         last_progress = -1
+        last_processed_rows = -1
         db = SessionLocal()  # Create a new DB session for this generator
 
         try:
@@ -114,7 +115,7 @@ async def stream_job_events(job_id: str):
                     status = cached.get("status")
                     progress = cached.get("progress", 0)
                     total_rows = cached.get("total_rows")
-                    processed_rows = cached.get("processed_rows")
+                    processed_rows = cached.get("processed_rows", 0)
                     error_message = cached.get("error_message")
                 else:
                     # Fall back to database
@@ -132,11 +133,15 @@ async def stream_job_events(job_id: str):
                     status = import_job.status
                     progress = import_job.progress
                     total_rows = import_job.total_rows
-                    processed_rows = import_job.processed_rows
+                    processed_rows = import_job.processed_rows or 0
                     error_message = import_job.error_message
 
-                # Only send update if status or progress changed
-                if status != last_status or progress != last_progress:
+                # Send update if status, progress, or processed_rows changed
+                # This ensures we get updates even when progress percentage stays the same
+                # but processed_rows continues to increase
+                if (status != last_status or 
+                    progress != last_progress or 
+                    processed_rows != last_processed_rows):
                     event_data = {
                         "job_id": job_id,
                         "status": status,
@@ -149,6 +154,7 @@ async def stream_job_events(job_id: str):
                     
                     last_status = status
                     last_progress = progress
+                    last_processed_rows = processed_rows
 
                     # Stop streaming if job is completed or failed
                     if status in ("completed", "failed"):

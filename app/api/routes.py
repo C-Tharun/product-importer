@@ -32,7 +32,8 @@ def validate_csv_headers(file_path: Path) -> tuple[bool, list[str]]:
                 return False, list(REQUIRED_CSV_HEADERS)
             
             # Get headers from the first row (case-insensitive, strip whitespace)
-            csv_headers = {header.strip().lower() for header in reader.fieldnames if header}
+            # Handle headers with extra whitespace or special characters
+            csv_headers = {header.strip().lower() for header in reader.fieldnames if header and header.strip()}
             
             # Check for required headers (case-insensitive)
             missing_headers = [

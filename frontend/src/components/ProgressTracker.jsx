@@ -8,23 +8,25 @@ function ProgressTracker({ jobId, onComplete }) {
   const [statusText, setStatusText] = useState('')
 
   useEffect(() => {
-    // Update status text based on job status
+    // Update status text based on job status with more detailed messages
     switch (status) {
       case 'pending':
         setStatusText('Queued for processing...')
         break
       case 'processing':
-        setStatusText(
-          totalRows
-            ? `Processing ${processedRows || 0} of ${totalRows} rows...`
-            : 'Parsing CSV file...'
-        )
+        if (!totalRows) {
+          setStatusText('Parsing CSV file...')
+        } else if (processedRows === 0) {
+          setStatusText('Validating and starting import...')
+        } else {
+          setStatusText(`Processing ${processedRows || 0} of ${totalRows} rows...`)
+        }
         break
       case 'completed':
-        setStatusText('Import completed successfully!')
+        setStatusText('Import Complete')
         break
       case 'failed':
-        setStatusText('Import failed')
+        setStatusText('Import Failed')
         break
       default:
         setStatusText('Initializing...')
@@ -54,20 +56,36 @@ function ProgressTracker({ jobId, onComplete }) {
     <div className="space-y-4 animate-fade-in">
       <h2 className="text-2xl font-semibold text-gray-800 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Import Progress</h2>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
+        {/* Status Message */}
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-gray-700">
             {statusText}
           </span>
-          <span className="text-sm font-bold text-blue-600">{progress}%</span>
+          <span className={`text-sm font-bold px-2 py-1 rounded ${
+            status === 'completed' 
+              ? 'bg-green-100 text-green-800' 
+              : status === 'failed'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-blue-100 text-blue-800'
+          }`}>
+            {progress}%
+          </span>
         </div>
 
+        {/* Progress Bar */}
         <ProgressBar progress={progress} status={status} />
 
+        {/* Row Count */}
         {totalRows && (
-          <p className="text-xs text-gray-500 text-right">
-            {processedRows || 0} / {totalRows} rows processed
-          </p>
+          <div className="flex justify-between items-center text-xs text-gray-500">
+            <span>{processedRows || 0} / {totalRows} rows processed</span>
+            {status === 'processing' && processedRows > 0 && totalRows > 0 && (
+              <span className="text-gray-400">
+                {Math.round(((totalRows - (processedRows || 0)) / totalRows) * 100)}% remaining
+              </span>
+            )}
+          </div>
         )}
       </div>
 
