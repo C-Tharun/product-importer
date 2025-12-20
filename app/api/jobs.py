@@ -20,22 +20,39 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)) -> dict:
     """
     Get current status of an import job.
     Checks Redis cache first, then falls back to DB.
+    Accepts either UUID or Celery task ID.
     """
-    # Try Redis cache first (fast path)
-    cached = get_cached_job_progress(job_id)
-    if cached:
-        return {
-            "job_id": job_id,
-            **cached,
-        }
-
-    # Fall back to database
+    # Resolve job_id to celery_task_id for Redis lookups
+    # Redis stores data with celery_task_id as the key
+    celery_task_id = None
+    import_job = None
+    
     try:
         job_uuid = uuid.UUID(job_id)
         import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
-    except ValueError:
-        # If job_id is not a UUID, try celery_task_id
-        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+        if import_job:
+            celery_task_id = import_job.celery_task_id
+    except (ValueError, AttributeError):
+        # If job_id is not a UUID, assume it's already a celery_task_id
+        celery_task_id = job_id
+    
+    # Try Redis cache first (fast path) using celery_task_id
+    if celery_task_id:
+        cached = get_cached_job_progress(celery_task_id)
+        if cached:
+            return {
+                "job_id": str(import_job.id) if import_job else job_id,
+                "celery_task_id": celery_task_id,
+                **cached,
+            }
+
+    # Fall back to database if not found in cache
+    if not import_job:
+        if celery_task_id:
+            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
+        else:
+            # Last resort: try job_id as celery_task_id
+            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
 
     if not import_job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -101,6 +118,7 @@ async def stream_job_events(job_id: str):
     Streams JSON updates every second while job is active.
     Compatible with EventSource API in browsers.
     Uses Redis cache for fast lookups, falls back to DB when needed.
+    Accepts either UUID or Celery task ID.
     """
     from app.db.session import SessionLocal
     
@@ -110,11 +128,25 @@ async def stream_job_events(job_id: str):
         last_progress = -1
         last_processed_rows = -1
         db = SessionLocal()  # Create a new DB session for this generator
+        
+        # Resolve job_id to celery_task_id for Redis lookups
+        # Redis stores data with celery_task_id as the key
+        celery_task_id = None
+        try:
+            job_uuid = uuid.UUID(job_id)
+            import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
+            if import_job:
+                celery_task_id = import_job.celery_task_id
+        except (ValueError, AttributeError):
+            # If job_id is not a UUID, assume it's already a celery_task_id
+            celery_task_id = job_id
 
         try:
             while True:
-                # Try Redis cache first (fast path)
-                cached = get_cached_job_progress(job_id)
+                # Try Redis cache first (fast path) using celery_task_id
+                cached = None
+                if celery_task_id:
+                    cached = get_cached_job_progress(celery_task_id)
                 
                 if cached:
                     status = cached.get("status")
@@ -125,16 +157,25 @@ async def stream_job_events(job_id: str):
                     eta_seconds = cached.get("eta_seconds")
                 else:
                     # Fall back to database
-                    try:
-                        job_uuid = uuid.UUID(job_id)
-                        import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
-                    except ValueError:
-                        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+                    if not celery_task_id:
+                        # Need to look up the job to get celery_task_id
+                        try:
+                            job_uuid = uuid.UUID(job_id)
+                            import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
+                        except (ValueError, AttributeError):
+                            import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
+                    else:
+                        # We have celery_task_id, look up by that
+                        import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == celery_task_id).first()
 
                     if not import_job:
                         # Job not found - send error and close
                         yield f"data: {json.dumps({'error': 'Job not found'})}\n\n"
                         break
+
+                    # Update celery_task_id if we didn't have it
+                    if not celery_task_id:
+                        celery_task_id = import_job.celery_task_id
 
                     status = import_job.status
                     progress = import_job.progress
@@ -224,15 +265,21 @@ async def cancel_job(
     """
     Cancel a running import job by revoking the Celery task.
     This stops processing immediately and marks the job as failed.
+    Accepts either UUID or Celery task ID.
     """
     from app.celery_app import celery_app
     
-    # Try to find the job by UUID or celery_task_id
+    # Try to find the job by UUID first, then by celery_task_id
+    import_job = None
     try:
         job_uuid = uuid.UUID(job_id)
         import_job = db.query(ImportJob).filter(ImportJob.id == job_uuid).first()
-    except ValueError:
+    except (ValueError, AttributeError):
         # If job_id is not a UUID, try celery_task_id
+        pass
+    
+    # If not found by UUID, try celery_task_id
+    if not import_job:
         import_job = db.query(ImportJob).filter(ImportJob.celery_task_id == job_id).first()
 
     if not import_job:

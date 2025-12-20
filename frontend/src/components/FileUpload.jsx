@@ -29,7 +29,8 @@ function FileUpload({ onUploadSuccess, disabled }) {
       })
 
       const data = await response.json()
-      onUploadSuccess(data.job_id)
+      // Use job_id (UUID) if available, fallback to celery_task_id for backward compatibility
+      onUploadSuccess(data.job_id || data.celery_task_id)
     } catch (err) {
       // Handle backend validation errors (HTTP 400)
       // apiFetch already extracts and formats error messages from backend

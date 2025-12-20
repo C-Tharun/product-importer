@@ -125,5 +125,9 @@ async def upload_csv(
         processed_rows=0,
     )
 
-    return {"job_id": job_id}
+    # Return both UUID and Celery task ID for flexibility
+    return {
+        "job_id": str(import_job.id),  # UUID for job management
+        "celery_task_id": job_id,  # Celery task ID for SSE
+    }
 

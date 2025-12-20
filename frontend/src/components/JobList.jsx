@@ -47,7 +47,7 @@ function JobList() {
   }
 
   const handleDelete = async (jobId) => {
-    if (!confirm('Are you sure you want to delete this import job? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to remove this import job? This action cannot be undone.')) {
       return
     }
 
@@ -124,9 +124,9 @@ function JobList() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    {formatDate(job.created_at)}
-                  </span>
+                <span className="text-xs text-gray-500">
+                  {formatDate(job.created_at)}
+                </span>
                   <div className="flex gap-1">
                     {(job.status === 'processing' || job.status === 'pending') && (
                       <button
@@ -142,9 +142,9 @@ function JobList() {
                       onClick={() => handleDelete(job.job_id)}
                       disabled={deletingId === job.job_id}
                       className="px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                      title="Delete job"
+                      title="Remove job"
                     >
-                      {deletingId === job.job_id ? 'Deleting...' : 'Delete'}
+                      {deletingId === job.job_id ? 'Removing...' : 'Remove'}
                     </button>
                   </div>
                 </div>
